@@ -1,98 +1,74 @@
-###############################################################################
-# hw1_591.py
-#
-# EEE 419/591 - Homework 1 (591 additional problem)
-# Problem 4: Manual Discrete Cosine Transform (DCT-II) Calculations
-#
-# Computes the type-II DCT of a 1D signal two different ways -- nested for
-# loops and an N x N matrix-vector product -- and compares both against
-# scipy.fftpack.dct(x, type=2, norm=None).
-#
-# The DCT-II used here is the unnormalized definition:
-#
-#     X[k] = 2 * sum_{n=0}^{N-1} x[n] * cos( (pi/N) * (n + 1/2) * k )
-#
-#     for k = 0, 1, ..., N-1
-#
-# which is the same convention SciPy uses for type=2, norm=None.
-#
-# Author: <your name>
-# ASU ID: <your id>
-#
-# CITATIONS (required per syllabus, page 4):
-#   <fill in per the syllabus citation format>
-###############################################################################
+import numpy as np
+from scipy.fftpack import dct
 
-import numpy as np                      # arrays and vectorized math
-from scipy.fftpack import dct           # reference implementation
+N = 512
 
-N = 512                                 # signal length, problem requires N > 256
+class DCT_calc():
+    def __init__(self, n, x):
+        self.x = x
+        self.n = n
+        self.n_samples = len(self.x)
+        
+    def validator(self):  #to make sure that its above 256
+        if(self.n <= 256):
+            print(f"Error: n must be greater than 256 {self.n}")
+            return False
+        else:
+            return True
 
+    def dct2_loops(self):
+        x_frequency = np.zeros(self.n_samples)
 
-def dct2_loops(x):
-    """DCT-II computed with nested for loops (the direct O(N^2) definition).
+        for k in range(self.n_samples):
+            total = 0.0
+            for n in range(self.n_samples):
+                angle = np.pi / self.n_samples * (n + 0.5) * k
+                total += self.x[n] * np.cos(angle)
+            
+            x_frequency[k] = 2.0 * total
+    
 
-    x       : 1D array of length N
-    returns : 1D array of length N holding the DCT-II coefficients
-    """
-    n_samples = len(x)
-    x_freq = np.zeros(n_samples)         # output array, one coefficient per k
+        return x_frequency
 
-    for k in range(n_samples):           # outer loop over frequency index k
-        total = 0.0                      # running sum for this k
-        for n in range(n_samples):       # inner loop over time index n
-            angle = np.pi / n_samples * (n + 0.5) * k
-            total += x[n] * np.cos(angle)
-        x_freq[k] = 2.0 * total          # factor of 2 from the definition
+    def dct2_matrix(self):
+        
+        k = np.arrange(self.n_samples).reshape(-1, 1) # col vec of shape N,1
+        n_val = np.arrange(self.n_samples).reshape(1, -1) # row vec of shape 1, N
 
-    return x_freq
+        C = 2.0 * np.cos(np.pi / self.n_samples * (n_val + 0.5) * k)
 
+        return C @ self.x
+    
 
-def dct2_matrix(x):
-    """DCT-II computed as a matrix-vector product X = C @ x.
+    def main(self):
+        if self.validator():
+        
+            x_frequency_ref = dct(self.x, type=2, norm=None)
+            x_frequency_loop = self.dct2_loops()
+            x_frequency_matrix = self.dct2_matrix()
 
-    Builds the N x N transformation matrix C whose entries are
+            # largest absolute difference over all N coefficients
+            err_loop = np.max(np.abs(x_frequency_loop - x_frequency_ref))
+            err_matrix = np.max(np.abs(x_frequency_matrix - x_frequency_ref))
 
-        C[k, n] = 2 * cos( (pi/N) * (n + 1/2) * k )
-
-    so that row k of C, dotted with x, gives coefficient X[k].
-
-    x       : 1D array of length N
-    returns : 1D array of length N holding the DCT-II coefficients
-    """
-    n_samples = len(x)
-
-    k = np.arange(n_samples).reshape(-1, 1)   # column vector of k, shape (N,1)
-    n = np.arange(n_samples).reshape(1, -1)   # row vector of n,    shape (1,N)
-
-    # Broadcasting the column against the row builds the full N x N matrix.
-    C = 2.0 * np.cos(np.pi / n_samples * (n + 0.5) * k)
-
-    return C @ x                              # matrix-vector multiply
+            print(f"N = {self.n_samples}")
+            print(f"Max error (loop vs scipy DCT):   {err_loop:.2e}")
+            print(f"Max error (matrix vs scipy DCT): {err_matrix:.2e}")
 
 
-def main():
-    # Build a test signal. A fixed seed keeps the run repeatable, and mixing
-    # a couple of tones with noise avoids any accidentally trivial input.
+
+def make_signal(n_samples):
+    #it'll be too fictious for a signal to exsist without a noise
     rng = np.random.default_rng(591)
-    t = np.arange(N)
-    x_time = (np.sin(2.0 * np.pi * 5.0 * t / N)
-              + 0.5 * np.cos(2.0 * np.pi * 37.0 * t / N)
-              + 0.1 * rng.standard_normal(N))
-
-    # Reference result from SciPy, plus the two manual implementations.
-    x_freq_ref = dct(x_time, type=2, norm=None)
-    x_freq_loop = dct2_loops(x_time)
-    x_freq_matrix = dct2_matrix(x_time)
-
-    # Maximum absolute error across all N coefficients.
-    err_loop = np.max(np.abs(x_freq_loop - x_freq_ref))
-    err_matrix = np.max(np.abs(x_freq_matrix - x_freq_ref))
-
-    print("N = %d" % N)
-    print("Max error (loop vs SciPy DCT):   %.2e" % err_loop)
-    print("Max error (matrix vs SciPy DCT): %.2e" % err_matrix)
+    t = np.arange(n_samples)
+    return (np.sin(2.0 * np.pi * 5.0 * t / n_samples)
+            + 0.5 * np.cos(2.0 * np.pi * 37.0 * t / n_samples)
+            + 0.1 * rng.standard_normal(n_samples))
 
 
-if __name__ == "__main__":
-    main()
+calc = DCT_calc(N, make_signal(N))
+calc.main()
+
+
+#references :
+#https://docs.scipy.org/doc/scipy/tutorial/fft.html
