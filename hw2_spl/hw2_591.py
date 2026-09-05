@@ -96,3 +96,16 @@ integral = integration_method1_2(4)
 integral.result_reporter()
 integral2 = integration_method2(4)
 integral2.result_reporter()
+
+#citations
+# Integration (scipy.integrate)
+# The scipy.integrate sub-package provides several integration techniques including an ordinary differential equation integrator.
+
+# General integration (quad)
+# The function quad is provided to integrate a function of one variable between two points. The points can be 
+#  (
+#  inf) to indicate infinite limits. For example, suppose you wish to integrate a bessel function jv(2.5, x) along the interval 
+
+# website : https://docs.scipy.org/doc/scipy/tutorial/integrate.html
+
+
