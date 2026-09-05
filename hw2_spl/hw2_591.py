@@ -1,5 +1,6 @@
 import math
-from scipy import integrate     # built-in integration package for Method 2
+# pyrefly: ignore [missing-import]
+import scipy.integrate as integrate     # built-in integration package for Method 2
 
 # class integration_method1_1():
 #     def __init__(self, x = 4): #i put in a default so that, missing the command, wont cause a bug
